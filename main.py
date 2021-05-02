@@ -4,7 +4,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from estRun import estRun
+from estRun_Zach import estRun
+# from estRun import estRun
 from estInitialize import estInitialize
 
 #provide the index of the experimental run you would like to use.
@@ -38,6 +39,7 @@ for k in range(numDataPoints):
     
     #run the estimator:
     x, y, theta, internalState = estRun(t, dt, internalState, gamma, omega, (measx, measy))
+    # print(theta)
 
     #keep track:
     estimatedPosition_x[k] = x

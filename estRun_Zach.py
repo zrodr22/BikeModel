@@ -83,62 +83,78 @@ def estRun(time, dt, internalStateIn, steeringAngle, pedalSpeed, measurement):
             variance = variancep
         
 ########################################################################
+    # Particle Filter
     if estimator == 'PF':
-        # Particle Filter
-
-        # Initial Particles
-        Nps = [1,10,100,1000]
-        # Number of iterations
-        num_times = 100
-        avgs = {1: [], 10: [], 100: [], 1000: []}
-
         def normal(x,sigma,mu):
-            return 1/(sigma*np.sqrt(2*np.pi))*np.exp(-1/2*((x-mu)/sigma)**2)
+            # return 1/(sigma*np.sqrt(2*np.pi))*np.exp(-1/2*((x-mu)/sigma)**2)
+            return 1/(np.sqrt(np.linalg.det(sigma)*(2*np.pi)**2))*np.exp(-1/2*(x-mu).T@np.linalg.inv(sigma)@(x-mu))
 
-        def fzx(z,xp):
-            return normal(z-xp,1,0)
+        def fzx(z,h):
+            # return normal(z-xp,1,0)
+            return normal(z-h,np.sqrt(W),np.zeros((2,1)))
 
-        # for Np in Nps:
-        #     zeros = np.zeros((3,Np))
-        for s in range(num_times):
-            x_samples = np.random.normal(0,1,(4,Np))
-            k = 1
-            for z in zs:
-                v_samples = np.random.normal(0,1,Np)
-                v_samples = np.vstack((zeros, v_samples))
+        particles = internalStateIn[4]
+        x_samples = particles[0]
+        y_samples = particles[1]
+        theta_samples = particles[2]
 
-                xp = x_samples + v_samples 
-                
-                fzxs = np.array([fzx(z,x) for x in xp[0]])
-                alpha = 1/np.sum(fzxs)
-                
-                beta_n = alpha*fzxs
-                
-                n_bar = []
-            
-                sum = np.cumsum(beta_n)
-                for n in range(Np):
-                    r = np.random.uniform(0,1)
-                    m = np.where(r <= sum)[0][0]
-                    n_bar.append(m)
-                
-                xm_poster = xp[:,n_bar]
-                x_samples = xm_poster
+        # Calculate V samples
+        Np = len(x_samples)
+        vval = 1/9*0.1**2
+        v1_samples = np.random.normal(0,vval,Np)
+        v2_samples = np.random.normal(0,vval,Np)
+        v3_samples = np.random.normal(0,vval,Np)
 
-                if k == 5:
-                    avg = np.mean(xm_poster,axis=1)
-                    avgs[Np].append(avg)
-                
-                k += 1
+        xp = x_samples + 5*r*pedalSpeed*np.cos(theta_samples)*dt
+        xp+= v1_samples
+        yp = y_samples + 5*r*pedalSpeed*np.sin(theta_samples)*dt
+        yp+= v2_samples
+        thetap = theta_samples + dt*(5*r*pedalSpeed/B)*np.tan(steeringAngle)
+        thetap+= v3_samples
+
+        h = np.array([[ xp + 0.5*B*np.cos(thetap) ],
+                    [ yp + 0.5*B*np.sin(thetap) ]])
+
+        h = np.vstack((h[0][0],h[1][0]))
+        fzxs = []
+        z = np.array([[x],[y]])
+        for i in range(len(h[0])):
+            h_val = np.reshape(h[:,i],(2,1))
+            fzxs.append(fzx(z,h_val))
+
+        # fzxs = np.array([fzx(z,h) for h in xp[0]])
+        fzxs = np.array(fzxs)
+        alpha = 1/np.sum(fzxs)
+        
+        beta_n = alpha*fzxs
+        
+        n_bar = []
     
+        beta_cumsum = np.cumsum(beta_n)
+        for n in range(Np):
+            r = np.random.uniform(0,1)
+            # m = np.where(r <= beta_cumsum)[0][0]
+            m = np.min(np.where(r < beta_cumsum))
+            n_bar.append(m)
+        
+        # print(xp)
+        xm_poster = xp[n_bar]
+        ym_poster = yp[n_bar]
+        thetam_poster = thetap[n_bar]
+
+        x = np.average(xm_poster)
+        y = np.average(ym_poster)
+        theta = np.average(thetam_poster)
+        variance = np.diag([np.var(xm_poster), np.var(ym_poster), np.var(thetam_poster)])
+        xm_particles = np.array([xm_poster, ym_poster, thetam_poster])
+
+        # else:
+        #     x = x
+        #     y = y
+        #     theta = theta
+        #     variance = variance
+
 #############################################################################            
-
-    #we're unreliable about our favourite colour: 
-    # if myColor == 'green':
-    #     myColor = 'red'
-    # else:
-    #     myColor = 'green'
-
 
     #### OUTPUTS ####
     # Update the internal state (will be passed as an argument to the function
@@ -147,7 +163,8 @@ def estRun(time, dt, internalStateIn, steeringAngle, pedalSpeed, measurement):
     internalStateOut = [x,
                         y,
                         theta, 
-                        variance
+                        variance,
+                        xm_particles
                         ]
 
     # DO NOT MODIFY THE OUTPUT FORMAT:

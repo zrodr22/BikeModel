@@ -17,7 +17,15 @@ def estInitialize():
     x = 0
     y = 0
     theta = np.pi/4
-    variance = 1/9*np.diag([1,1,(np.pi/4)**2])
+    # variance = 1/9*np.diag([1,1,(np.pi/4)**2])
+    variance = 1/9*np.diag([0.1,0.1,(0.1)**2])
+
+    Np = 100
+    x_samples = np.random.normal(x,variance[0,0],Np)
+    y_samples = np.random.normal(y,variance[1,1],Np)
+    theta_samples = np.random.normal(theta,variance[2,2],Np)
+    xm_particles = np.array([x_samples, y_samples, theta_samples])
+
     # color = 'green' 
     # note that there is *absolutely no prescribed format* for this internal state.
     # You can put in it whatever you like. Probably, you'll want to keep the position
@@ -25,7 +33,8 @@ def estInitialize():
     internalState = [x,
                      y,
                      theta, 
-                     variance
+                     variance,
+                     xm_particles
                     #  color
                      ]
 
