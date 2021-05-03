@@ -18,13 +18,19 @@ def estInitialize():
     y = 0
     theta = np.pi/4
     # variance = 1/9*np.diag([1,1,(np.pi/4)**2])
-    variance = 1/9*np.diag([0.1,0.1,(0.1)**2])
+    variance = 1/9*np.diag([0.1**2,0.1**2,(0.1)**2])
 
-    Np = 100
-    x_samples = np.random.normal(x,variance[0,0],Np)
-    y_samples = np.random.normal(y,variance[1,1],Np)
-    theta_samples = np.random.normal(theta,variance[2,2],Np)
-    xm_particles = np.array([x_samples, y_samples, theta_samples])
+    Np = 10000
+    x_samples = np.random.normal(x,np.sqrt(variance[0,0]),Np)
+    y_samples = np.random.normal(y,np.sqrt(variance[1,1]),Np)
+    theta_samples = np.random.normal(theta,np.sqrt(variance[2,2]),Np)
+
+    B = 0.8
+    r = .425
+    B_samples = np.random.normal(B,.0267,Np)
+    r_samples = np.random.normal(r,.00708,Np)
+
+    xm_particles = np.array([x_samples, y_samples, theta_samples, B_samples, r_samples])
 
     # color = 'green' 
     # note that there is *absolutely no prescribed format* for this internal state.
